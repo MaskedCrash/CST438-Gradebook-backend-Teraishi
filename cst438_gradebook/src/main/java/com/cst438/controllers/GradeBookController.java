@@ -1,5 +1,7 @@
 package com.cst438.controllers;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +28,7 @@ import com.cst438.domain.CourseDTOG;
 import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
 import com.cst438.domain.GradebookDTO;
+import com.cst438.domain.AssignmentListDTO.AssignmentDTO;
 import com.cst438.services.RegistrationService;
 
 @RestController
@@ -169,5 +173,107 @@ public class GradeBookController {
 		
 		return assignment;
 	}
-
+	
+	@PostMapping("/assignment")
+	@Transactional
+	public AssignmentListDTO.AssignmentDTO addAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		// if assignmentDTO data is empty
+		if (assignmentDTO == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment is null.");
+		}
+		// if assignmentDTO assignment name is invalid
+		if (assignmentDTO.assignmentName == null || assignmentDTO.assignmentName.trim().isEmpty()) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment name is empty");
+		}
+		
+		// get course from assignmentDTO courseId
+		Course course = courseRepository.findById(assignmentDTO.courseId).orElse(null);
+		
+		// if the courseId doesn't exist
+		if (course == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course not found. "+ assignmentDTO.courseId );
+		}
+		// if the course instructor does not match the email
+		if (!course.getInstructor().equals(email)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
+		}
+		
+		// TODO: check validity of due date
+		
+		// otherwise, create new assignment
+		Assignment assignment = new Assignment();
+		assignment.setName(assignmentDTO.assignmentName);
+		assignment.setCourse(course);
+		assignment.setNeedsGrading(1);
+		assignment.setDueDate(java.sql.Date.valueOf(assignmentDTO.dueDate));
+		
+		Assignment savedAssignment = assignmentRepository.save(assignment);
+		
+		AssignmentListDTO.AssignmentDTO result = createAssignmentDTO(savedAssignment);
+		return result;
+	}
+	
+	private AssignmentListDTO.AssignmentDTO createAssignmentDTO(Assignment a) {
+		Course c = a.getCourse();
+		AssignmentListDTO.AssignmentDTO assignmentDTO = new AssignmentListDTO.AssignmentDTO();
+		assignmentDTO.assignmentId = a.getId();
+		assignmentDTO.assignmentName = a.getName();
+		assignmentDTO.courseId = c.getCourse_id();
+		assignmentDTO.courseTitle = c.getTitle();
+		assignmentDTO.dueDate = a.getDueDate().toString();
+		return assignmentDTO;
+	}
+	
+	// get assignment from assignment id
+	@GetMapping("/assignment/{id}")
+	public AssignmentListDTO.AssignmentDTO getAssignment(@PathVariable("id") Integer assignmentId) {
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
+		
+		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+		if (assignment == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Invalid assignment.");
+		}
+		
+		AssignmentListDTO.AssignmentDTO assignmentDTO = createAssignmentDTO(assignment);
+		return assignmentDTO;
+	}
+	
+	
+	@PutMapping("/assignment/{id}")
+	@Transactional
+	public void updateAssignmentName (@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO, @PathVariable("id") Integer assignmentId ) {
+		
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
+		
+		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+		
+		if (assignment == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Invalid assignment.");
+		}
+		
+		assignment.setName(assignmentDTO.assignmentName);
+		assignmentRepository.save(assignment);
+	}
+	
+	@DeleteMapping("/assignment/{id}")
+	@Transactional
+	public void dropCourse(@PathVariable("id") Integer assignmentId) {
+		
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+		AssignmentGrade assignmentGrade = assignmentGradeRepository.findById(assignmentId).orElse(null);
+		
+		if (assignment != null && assignmentGrade == null && assignment.getCourse().getInstructor().equals(email)) {
+			assignmentRepository.delete(assignment);
+		}
+		else {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Cannot delete assignment.");
+		}
+		
+	}
 }
