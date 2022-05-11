@@ -244,6 +244,90 @@ public class JunitTestGradebook {
 		verify(assignmentGradeRepository, times(1)).save(updatedag);
 	}
 	
+	@Test
+	public void addAssignment()  throws Exception {
+		
+		MockHttpServletResponse response;
+		// mock database data
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Enrollment enrollment = new Enrollment();
+		enrollment.setCourse(course);
+		course.getEnrollments().add(enrollment);
+		enrollment.setId(TEST_COURSE_ID);
+		enrollment.setStudentEmail(TEST_STUDENT_EMAIL);
+		enrollment.setStudentName(TEST_STUDENT_NAME);
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(1);
+
+		AssignmentGrade ag = new AssignmentGrade();
+		ag.setAssignment(assignment);
+		ag.setId(1);
+		ag.setScore("80");
+		ag.setStudentEnrollment(enrollment);
+
+		// given -- stubs for database repositories that return test data
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+		given(assignmentGradeRepository.findByAssignmentIdAndStudentEmail(1, TEST_STUDENT_EMAIL)).willReturn(ag);
+		given(assignmentGradeRepository.findById(1)).willReturn(Optional.of(ag));
+
+		// end of mock data
+		
+		// create the DTO (data transfer object) for the assignment to add.
+	   AssignmentListDTO.AssignmentDTO assignmentDTO = new AssignmentListDTO.AssignmentDTO();
+		assignmentDTO.assignmentId = assignment.getId();
+		assignmentDTO.assignmentName = assignment.getName();
+		assignmentDTO.courseId = course.getCourse_id();
+		//assignmentDTO.courseTitle = course.getTitle();
+		assignmentDTO.dueDate = assignment.getDueDate().toString();
+		
+		// then do an http post request 
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .post("/assignment")
+			      .content(asJsonString(assignmentDTO))
+			      .contentType(MediaType.APPLICATION_JSON)
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		// verify that return status = OK (value 200) 
+		assertEquals(200, response.getStatus());
+		
+		AssignmentListDTO.AssignmentDTO result = fromJsonString(response.getContentAsString(), AssignmentListDTO.AssignmentDTO.class);
+		assertEquals(assignment.getId(), result.assignmentId);
+		assertEquals(assignment.getName(), result.assignmentName);
+		assertEquals(course.getCourse_id(), result.courseId);
+		assertEquals(course.getTitle(), result.courseTitle);
+		assertEquals(assignment.getDueDate(), result.dueDate);
+		
+		// verify that repository save method was called.
+		verify(assignmentRepository).save(any(Assignment.class));
+		
+		// do http GET for assignment
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .get("/assignment/" + assignment.getId())
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		// verify that return status = OK (value 200) 
+		assertEquals(200, response.getStatus());
+	}
+	
 	private static String asJsonString(final Object obj) {
 		try {
 
