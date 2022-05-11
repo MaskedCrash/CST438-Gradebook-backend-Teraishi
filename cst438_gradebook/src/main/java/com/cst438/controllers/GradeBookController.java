@@ -261,7 +261,7 @@ public class GradeBookController {
 	
 	@DeleteMapping("/assignment/{id}")
 	@Transactional
-	public void dropCourse(@PathVariable("id") Integer assignmentId) {
+	public void dropAssignment(@PathVariable("id") Integer assignmentId) {
 		
 		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
