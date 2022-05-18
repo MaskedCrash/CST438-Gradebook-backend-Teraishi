@@ -265,15 +265,29 @@ public class GradeBookController {
 		
 		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
-		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
-		AssignmentGrade assignmentGrade = assignmentGradeRepository.findById(assignmentId).orElse(null);
+		Assignment assignment = checkAssignment(assignmentId, email);
 		
-		if (assignment != null && assignmentGrade == null && assignment.getCourse().getInstructor().equals(email)) {
-			assignmentRepository.delete(assignment);
-		}
-		else {
-			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Cannot delete assignment.");
+		if (assignment == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment doesn't exist.");
 		}
 		
+		GradebookDTO gradebook = new GradebookDTO();
+		gradebook.assignmentId = assignmentId;
+		gradebook.assignmentName = assignment.getName();
+		
+		for (Enrollment e : assignment.getCourse().getEnrollments()) {
+			GradebookDTO.Grade grade = new GradebookDTO.Grade();
+			grade.name = e.getStudentName();
+			grade.email = e.getStudentName();
+			
+			AssignmentGrade ag = assignmentGradeRepository.findByAssignmentIdAndStudentEmail(assignmentId, grade.email);
+			
+			if (ag != null) {
+				throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Cannot delete assignment.");
+			}
+		}
+		
+		// if there are no student grades then we can delete the assignment
+		assignmentRepository.delete(assignment);
 	}
 }
