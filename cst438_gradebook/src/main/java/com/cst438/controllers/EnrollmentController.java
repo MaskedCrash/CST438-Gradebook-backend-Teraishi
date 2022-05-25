@@ -1,5 +1,7 @@
 package com.cst438.controllers;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,11 +32,27 @@ public class EnrollmentController {
 	@PostMapping("/enrollment")
 	@Transactional
 	public EnrollmentDTO addEnrollment(@RequestBody EnrollmentDTO enrollmentDTO) {
+		Enrollment enrollment = new Enrollment();
+		Course course = courseRepository.findById(enrollmentDTO.course_id).orElse(null);
+		enrollment.setId(enrollmentDTO.id);
+		enrollment.setCourse(course);
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail);
+		enrollment.setStudentName(enrollmentDTO.studentName);
 		
-		//TODO  complete this method in homework 4
+		Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+		EnrollmentDTO result = createEnrollmentDTO(savedEnrollment);
+		return result;
+	}
+	
+	private EnrollmentDTO createEnrollmentDTO(Enrollment enrollment) {
+		EnrollmentDTO enrollmentDTO = new EnrollmentDTO();
+		Course course = enrollment.getCourse();
+		enrollmentDTO.id = enrollment.getId();
+		enrollmentDTO.course_id = course.getCourse_id();
+		enrollmentDTO.studentEmail = enrollment.getStudentEmail();
+		enrollmentDTO.studentName = enrollment.getStudentName();
 		
-		return null;
-		
+		return enrollmentDTO;
 	}
 
 }
