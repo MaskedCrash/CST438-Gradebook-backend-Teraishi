@@ -30,6 +30,8 @@ import com.cst438.domain.Enrollment;
 import com.cst438.domain.GradebookDTO;
 import com.cst438.domain.AssignmentListDTO.AssignmentDTO;
 import com.cst438.services.RegistrationService;
+import com.cst438.services.RegistrationServiceMQ;
+import com.cst438.services.RegistrationServiceREST;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
@@ -124,7 +126,6 @@ public class GradeBookController {
 			cdto.grades.add(gdto);
 			System.out.println("Course="+course_id+" Student="+e.getStudentEmail()+" grade="+gdto.grade);
 		}
-		
 		registrationService.sendFinalGrades(course_id, cdto);
 	}
 	
