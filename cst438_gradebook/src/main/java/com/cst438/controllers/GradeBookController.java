@@ -34,7 +34,7 @@ import com.cst438.services.RegistrationServiceMQ;
 import com.cst438.services.RegistrationServiceREST;
 
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
+@CrossOrigin(origins = {"http://localhost:3000","https://cst438-gradebook-fe.herokuapp.com/"})
 public class GradeBookController {
 	
 	@Autowired
