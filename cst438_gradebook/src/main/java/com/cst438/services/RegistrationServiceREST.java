@@ -21,9 +21,11 @@ public class RegistrationServiceREST extends RegistrationService {
 	
 	@Override
 	public void sendFinalGrades(int course_id , CourseDTOG courseDTO) { 
+		
+		/*
 		System.out.println("Sending http message: " + courseDTO);
 		ResponseEntity<CourseDTOG> response = restTemplate.postForEntity(
-				registration_url, 
+				registration_url + "/course/" + courseDTO.course_id, 
 				courseDTO, 
 				CourseDTOG.class);
 		System.out.println("Sent");
@@ -31,5 +33,7 @@ public class RegistrationServiceREST extends RegistrationService {
 		System.out.println("HttpStatus: " + rc);
 		CourseDTOG returnObject = response.getBody();
 		System.out.println(returnObject);
+		*/
+		restTemplate.postForEntity(registration_url + "/course/" + courseDTO.course_id, courseDTO, CourseDTOG.class);
 	}
 }
