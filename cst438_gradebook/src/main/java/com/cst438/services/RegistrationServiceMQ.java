@@ -19,7 +19,6 @@ import com.cst438.domain.Enrollment;
 import com.cst438.domain.EnrollmentDTO;
 import com.cst438.domain.EnrollmentRepository;
 
-
 public class RegistrationServiceMQ extends RegistrationService {
 
 	@Autowired
@@ -49,6 +48,14 @@ public class RegistrationServiceMQ extends RegistrationService {
 	@Transactional
 	public void receive(EnrollmentDTO enrollmentDTO) {
 		System.out.println("Recieved Rabbit message: "+ enrollmentDTO);
+		Course course = courseRepository.findById(enrollmentDTO.course_id).orElse(null);
+		Enrollment enrollment = new Enrollment();
+		enrollment.setCourse(course);
+		enrollment.setStudentName(enrollmentDTO.studentName);
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail);
+
+		//save to repository
+		enrollmentRepository.save(enrollment);
 	}
 
 	// sender of messages to Registration Service
