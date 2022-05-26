@@ -19,7 +19,6 @@ import com.cst438.domain.Enrollment;
 import com.cst438.domain.EnrollmentDTO;
 import com.cst438.domain.EnrollmentRepository;
 
-
 public class RegistrationServiceMQ extends RegistrationService {
 
 	@Autowired
