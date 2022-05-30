@@ -37,13 +37,15 @@ import com.cst438.domain.EnrollmentRepository;
  */
 
 @SpringBootTest
-public class EndToEndTestSubmitGrades {
+public class EndToEndTestAddAssignment {
 
 	public static final String CHROME_DRIVER_FILE_LOCATION = "C:/Users/Ashley/Downloads/chromedriver_win32/chromedriver.exe";
 	public static final String URL = "https://cst438-gradebook-fe.herokuapp.com/";
 	public static final String TEST_USER_EMAIL = "test@csumb.edu";
 	public static final String TEST_INSTRUCTOR_EMAIL = "dwisneski@csumb.edu";
+	public static final int TEST_COURSE_ID = 12438;
 	public static final int SLEEP_DURATION = 1000; // 1 second.
+	
 
 	@Autowired
 	EnrollmentRepository enrollmentRepository;
