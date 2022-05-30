@@ -110,7 +110,7 @@ public class EndToEndTestSubmitGrades {
 		 	we.click();
 
 			// Locate and click Go button
-			driver.findElement(By.xpath("//button[span='Grade']")).click();
+			driver.findElement(By.xpath("//button[@id='Grade']")).click();
 			Thread.sleep(SLEEP_DURATION);
 
 			// Locate row for student name "Test" and enter score of "99.9" into the grade field
@@ -118,7 +118,7 @@ public class EndToEndTestSubmitGrades {
 			we.findElement(By.xpath("following-sibling::div[@data-field='grade']")).sendKeys("99.9");
 
 			// Locate submit button and click
-			driver.findElement(By.xpath("//button[span='Submit']")).click();
+			driver.findElement(By.xpath("//button[@id='Submit']")).click();
 			Thread.sleep(SLEEP_DURATION);
 
 			// verify that score show up
