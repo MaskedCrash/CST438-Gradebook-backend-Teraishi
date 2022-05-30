@@ -110,7 +110,7 @@ public class EndToEndTestSubmitGrades {
 		 	we.click();
 
 			// Locate and click Go button
-			driver.findElement(By.xpath("//a")).click();
+			driver.findElement(By.xpath("//button[span='Grade']")).click();
 			Thread.sleep(SLEEP_DURATION);
 
 			// Locate row for student name "Test" and enter score of "99.9" into the grade field
