@@ -106,7 +106,7 @@ public class EndToEndTestSubmitGrades {
 
 		try {
 			// locate input element for assignment for 'Test Course'
-			WebElement we = driver.findElement(By.xpath("//DataGrid[@data-value='TEST ASSIGNMENT']//input"));
+			WebElement we = driver.findElement(By.xpath("//DataGridRowsProp[@data-value='TEST ASSIGNMENT']//input"));
 		 	we.click();
 
 			// Locate and click Go button
