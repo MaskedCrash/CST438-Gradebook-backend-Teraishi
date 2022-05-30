@@ -53,7 +53,7 @@ public class GradeBookController {
 	@GetMapping("/gradebook")
 	public AssignmentListDTO getAssignmentsNeedGrading( ) {
 		
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
 		List<Assignment> assignments = assignmentRepository.findNeedGradingByEmail(email);
 		AssignmentListDTO result = new AssignmentListDTO();
@@ -66,7 +66,7 @@ public class GradeBookController {
 	@GetMapping("/gradebook/{id}")
 	public GradebookDTO getGradebook(@PathVariable("id") Integer assignmentId  ) {
 		
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		Assignment assignment = checkAssignment(assignmentId, email);
 		
 		// get the enrollment for the course
@@ -101,7 +101,7 @@ public class GradeBookController {
 		System.out.println("Gradebook - calcFinalGrades for course " + course_id);
 		
 		// check that this request is from the course instructor 
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
 		Course c = courseRepository.findById(course_id).orElse(null);
 		if (!c.getInstructor().equals(email)) {
@@ -141,7 +141,7 @@ public class GradeBookController {
 	@Transactional
 	public void updateGradebook (@RequestBody GradebookDTO gradebook, @PathVariable("id") Integer assignmentId ) {
 		
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
 		
 		// for each grade in gradebook, update the assignment grade in database 
@@ -178,7 +178,7 @@ public class GradeBookController {
 	@PostMapping("/assignment")
 	@Transactional
 	public AssignmentListDTO.AssignmentDTO addAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
 		// if assignmentDTO data is empty
 		if (assignmentDTO == null) {
@@ -230,7 +230,7 @@ public class GradeBookController {
 	// get assignment from assignment id
 	@GetMapping("/assignment/{id}")
 	public AssignmentListDTO.AssignmentDTO getAssignment(@PathVariable("id") Integer assignmentId) {
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
 		
 		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
@@ -247,7 +247,7 @@ public class GradeBookController {
 	@Transactional
 	public void updateAssignmentName (@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO, @PathVariable("id") Integer assignmentId ) {
 		
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
 		
 		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
@@ -264,7 +264,7 @@ public class GradeBookController {
 	@Transactional
 	public void dropAssignment(@PathVariable("id") Integer assignmentId) {
 		
-		String email = "jjolley@csumb.edu";  // user name (should be instructor's email) 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
 		Assignment assignment = checkAssignment(assignmentId, email);
 		
