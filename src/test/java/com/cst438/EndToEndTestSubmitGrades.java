@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +45,9 @@ public class EndToEndTestSubmitGrades {
 	public static final String TEST_USER_EMAIL = "test@csumb.edu";
 	public static final String TEST_INSTRUCTOR_EMAIL = "dwisneski@csumb.edu";
 	public static final int SLEEP_DURATION = 1000; // 1 second.
+	public static final String TEST_ASSIGNMENT_NAME = "Test Assignment";
+	public static final String TEST_COURSE_TITLE = "Test Course";
+	public static final String TEST_STUDENT_NAME = "Test";
 
 	@Autowired
 	EnrollmentRepository enrollmentRepository;
@@ -66,21 +70,21 @@ public class EndToEndTestSubmitGrades {
 		c.setInstructor(TEST_INSTRUCTOR_EMAIL);
 		c.setSemester("Fall");
 		c.setYear(2021);
-		c.setTitle("Test Course");
+		c.setTitle(TEST_COURSE_TITLE);
 
 //	    add an assignment that needs grading for course 99999
 		Assignment a = new Assignment();
 		a.setCourse(c);
 		// set assignment due date to 24 hours ago
 		a.setDueDate(new java.sql.Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000));
-		a.setName("TEST ASSIGNMENT");
+		a.setName(TEST_ASSIGNMENT_NAME);
 		a.setNeedsGrading(1);
 
 //	    add a student TEST into course 99999
 		Enrollment e = new Enrollment();
 		e.setCourse(c);
 		e.setStudentEmail(TEST_USER_EMAIL);
-		e.setStudentName("Test");
+		e.setStudentName(TEST_STUDENT_NAME);
 
 		courseRepository.save(c);
 		a = assignmentRepository.save(a);
@@ -106,25 +110,46 @@ public class EndToEndTestSubmitGrades {
 
 		try {
 			// locate input element for assignment for 'Test Course'
-			WebElement we = driver.findElement(By.xpath("//DataGridRowsProp[@data-value='TEST ASSIGNMENT']//input"));
-		 	we.click();
+			List<WebElement> elements  = driver.findElements(By.xpath("//div[@data-field='assignmentName']/div"));
+			boolean found = false;
+			for (WebElement we : elements) {
+				System.out.println(we.getText()); // for debug
+				if (we.getText().equals(TEST_ASSIGNMENT_NAME)) {
+					found=true;
+					we.findElement(By.xpath("descendant::input")).click();
+					break;
+				}
+			}
+			assertTrue( found, "Unable to locate TEST ASSIGNMENT in list of assignments to be graded.");
 
 			// Locate and click Go button
-			driver.findElement(By.xpath("//button[@id='Grade']")).click();
+			driver.findElement(By.xpath("//a")).click();
 			Thread.sleep(SLEEP_DURATION);
 
 			// Locate row for student name "Test" and enter score of "99.9" into the grade field
-			we = driver.findElement(By.xpath("//div[@data-field='name' and @data-value='Test']"));
-			we.findElement(By.xpath("following-sibling::div[@data-field='grade']")).sendKeys("99.9");
+			elements  = driver.findElements(By.xpath("//div[@data-field='name' and @role='cell']"));
+			for (WebElement element : elements) {
+				System.out.println(element.getText());
+				if (element.getText().equals(TEST_STUDENT_NAME)) {
+					element.findElement(By.xpath("following-sibling::div[@data-field='grade']")).sendKeys("99.9"+Keys.ENTER);
+					Thread.sleep(SLEEP_DURATION);
+					break;
+				}
+			}
+
+			/*
+			 *  Locate submit button and click
+			 */
+			driver.findElement(By.xpath("//button[@id='Submit']")).click();
 
 			// Locate submit button and click
 			driver.findElement(By.xpath("//button[@id='Submit']")).click();
 			Thread.sleep(SLEEP_DURATION);
 
 			// verify that score show up
-			 we = driver.findElement(By.xpath("//div[@data-field='name' and @data-value='Test']"));
-			 we =  we.findElement(By.xpath("following-sibling::div[@data-field='grade']"));
-			assertEquals("99.9", we.getAttribute("data-value"));
+			WebElement w = driver.findElement(By.xpath("//div[@data-field='name' and @role='cell']"));
+			w =  w.findElement(By.xpath("following-sibling::div[@data-field='grade']"));
+			assertEquals("99.9", w.getText(), "score does not show value entered as 99.9");
 
 			// verify that assignment_grade has been added to database with score of 99.9
 			ag = assignnmentGradeRepository.findByAssignmentIdAndStudentEmail(a.getId(), TEST_USER_EMAIL);
