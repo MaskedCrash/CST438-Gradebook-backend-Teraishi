@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,9 +44,12 @@ public class EndToEndTestAddAssignment {
 	public static final String URL = "https://cst438-gradebook-fe.herokuapp.com/";
 	public static final String TEST_USER_EMAIL = "test@csumb.edu";
 	public static final String TEST_INSTRUCTOR_EMAIL = "dwisneski@csumb.edu";
-	public static final int TEST_COURSE_ID = 12438;
 	public static final int SLEEP_DURATION = 1000; // 1 second.
-	
+	public static final String TEST_ASSIGNMENT_NAME = "Test Assignment";
+	public static final int TEST_COURSE_ID = 12438;
+	public static final String TEST_DUE_DATE = "2022-01-01";
+	public static final String TEST_STUDENT_NAME = "Test";
+	public static final String TEST_COURSE_TITLE = "Test Course";
 
 	@Autowired
 	EnrollmentRepository enrollmentRepository;
@@ -60,32 +64,23 @@ public class EndToEndTestAddAssignment {
 	AssignmentRepository assignmentRepository;
 
 	@Test
-	public void addCourseTest() throws Exception {
-
-//		Database setup:  create course		
+	public void addAssignmentTest() throws Exception {
+		
+		//	Database setup:  create course		
 		Course c = new Course();
-		c.setCourse_id(99999);
+		c.setCourse_id(TEST_COURSE_ID);
 		c.setInstructor(TEST_INSTRUCTOR_EMAIL);
 		c.setSemester("Fall");
-		c.setYear(2021);
-		c.setTitle("Test Course");
+		c.setYear(2022);
+		c.setTitle(TEST_COURSE_TITLE);
 
-//	    add an assignment that needs grading for course 99999
-		Assignment a = new Assignment();
-		a.setCourse(c);
-		// set assignment due date to 24 hours ago
-		a.setDueDate(new java.sql.Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000));
-		a.setName("TEST ASSIGNMENT");
-		a.setNeedsGrading(1);
-
-//	    add a student TEST into course 99999
+		//	add a student TEST into course
 		Enrollment e = new Enrollment();
 		e.setCourse(c);
 		e.setStudentEmail(TEST_USER_EMAIL);
-		e.setStudentName("Test");
+		e.setStudentName(TEST_STUDENT_NAME);
 
 		courseRepository.save(c);
-		a = assignmentRepository.save(a);
 		e = enrollmentRepository.save(e);
 
 		AssignmentGrade ag = null;
@@ -107,40 +102,50 @@ public class EndToEndTestAddAssignment {
 		Thread.sleep(SLEEP_DURATION);
 
 		try {
-			// locate input element for assignment for 'Test Course'
-			WebElement we = driver.findElement(By.xpath("//div[@data-value='TEST ASSIGNMENT']//input"));
-		 	we.click();
-
-			// Locate and click Go button
-			driver.findElement(By.xpath("//a")).click();
+			// locate and click Add Assignment button
+			System.out.println("Find Add Assignment Button");
+			driver.findElement(By.xpath("//button[@id='AddAssignment']")).click();
 			Thread.sleep(SLEEP_DURATION);
-
-			// Locate row for student name "Test" and enter score of "99.9" into the grade field
-			we = driver.findElement(By.xpath("//div[@data-field='name' and @data-value='Test']"));
-			we.findElement(By.xpath("following-sibling::div[@data-field='grade']")).sendKeys("99.9");
-
-			// Locate submit button and click
-			driver.findElement(By.xpath("//button[span='Submit']")).click();
+			
+			WebElement we = driver.findElement(By.xpath("//input[@type='text' and @name='assignmentName']"));
+			we.sendKeys(TEST_ASSIGNMENT_NAME);
+			
+			we = driver.findElement(By.xpath("//input[@type='text' and @name='courseId']"));
+			we.sendKeys(Integer.toString(TEST_COURSE_ID));
+			
+			we = driver.findElement(By.xpath("//input[@type='text' and @name='dueDate']"));
+			we.sendKeys(TEST_DUE_DATE);
+			
+			// Locate and click Add button
+			driver.findElement(By.xpath("//button[@id='Add']")).click();
 			Thread.sleep(SLEEP_DURATION);
+			
 
-			// verify that score show up
-			 we = driver.findElement(By.xpath("//div[@data-field='name' and @data-value='Test']"));
-			 we =  we.findElement(By.xpath("following-sibling::div[@data-field='grade']"));
-			assertEquals("99.9", we.getAttribute("data-value"));
-
-			// verify that assignment_grade has been added to database with score of 99.9
-			ag = assignnmentGradeRepository.findByAssignmentIdAndStudentEmail(a.getId(), TEST_USER_EMAIL);
-			assertEquals("99.9", ag.getScore());
+			// verify that assignment added
+			List<WebElement> elements  = driver.findElements(By.xpath("//div[@data-field='assignmentName']/div"));
+			boolean found_assignment = false;
+			for (WebElement web_e : elements) {
+				System.out.println(web_e.getText()); // for debug
+				if (web_e.getText().equals(TEST_ASSIGNMENT_NAME)) {
+					found_assignment = true;
+					web_e.findElement(By.xpath("descendant::input")).click();
+					break;
+				}
+			}
+			assertTrue( found_assignment, "Unable to locate TEST ASSIGNMENT in list of assignments to be graded.");
 
 		} catch (Exception ex) {
 			throw ex;
 		} finally {
 
 			// clean up database.
-			ag = assignnmentGradeRepository.findByAssignmentIdAndStudentEmail(a.getId(), TEST_USER_EMAIL);
-			if (ag!=null) assignnmentGradeRepository.delete(ag);
+			List<Assignment> list_a = assignmentRepository.findNeedGradingByEmail(TEST_INSTRUCTOR_EMAIL);
+			for (Assignment a : list_a) {
+				ag = assignnmentGradeRepository.findByAssignmentIdAndStudentEmail(a.getId(), TEST_USER_EMAIL);
+				if (ag!=null) assignnmentGradeRepository.delete(ag);
+				assignmentRepository.delete(a);
+			}
 			enrollmentRepository.delete(e);
-			assignmentRepository.delete(a);
 			courseRepository.delete(c);
 
 			driver.quit();
