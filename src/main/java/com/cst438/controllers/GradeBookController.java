@@ -35,6 +35,8 @@ import com.cst438.services.RegistrationService;
 import com.cst438.services.RegistrationServiceMQ;
 import com.cst438.services.RegistrationServiceREST;
 
+//@RestController
+//@CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
 @RestController
 @CrossOrigin(origins = {"http://localhost:3000","https://cst438-gradebook-fe.herokuapp.com/"})
 public class GradeBookController {
@@ -58,6 +60,11 @@ public class GradeBookController {
 		String email = principal.getAttribute("email");
 		
 		List<Assignment> assignments = assignmentRepository.findNeedGradingByEmail(email);
+		
+		if (assignments.equals(null)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
 		AssignmentListDTO result = new AssignmentListDTO();
 		for (Assignment a: assignments) {
 			result.assignments.add(new AssignmentListDTO.AssignmentDTO(a.getId(), a.getCourse().getCourse_id(), a.getName(), a.getDueDate().toString() , a.getCourse().getTitle()));
