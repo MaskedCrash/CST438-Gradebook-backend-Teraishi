@@ -80,5 +80,4 @@ public class Cst438GradebookApplication extends WebSecurityConfigurerAdapter {
 	public RegistrationService registrationServiceDefault() {
 		return new RegistrationService();
 	}
-
 }
