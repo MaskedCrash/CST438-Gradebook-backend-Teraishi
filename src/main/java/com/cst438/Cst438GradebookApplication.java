@@ -46,6 +46,7 @@ public class Cst438GradebookApplication extends WebSecurityConfigurerAdapter {
 				System.out.println("error.message " + exception.getMessage());
 				handler.onAuthenticationFailure(request, response, exception);
 			}));
+		
 	}
 
 
