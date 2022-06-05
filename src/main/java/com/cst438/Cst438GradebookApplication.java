@@ -53,7 +53,7 @@ public class Cst438GradebookApplication extends WebSecurityConfigurerAdapter {
 	CorsConfigurationSource corsConfigurationSource() {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://accounts.google.com"));
+		config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://accounts.google.com", " https://cst438-gradebook-fe.herokuapp.com"));
 		config.setAllowedMethods(Arrays.asList("*"));
 		config.setAllowedHeaders(Arrays.asList("*"));
 		config.setAllowCredentials(true);
