@@ -29,6 +29,7 @@ import com.cst438.domain.Course;
 import com.cst438.domain.CourseDTOG;
 import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
+import com.cst438.domain.EnrollmentRepository;
 import com.cst438.domain.GradebookDTO;
 import com.cst438.domain.AssignmentListDTO.AssignmentDTO;
 import com.cst438.services.RegistrationService;
@@ -36,11 +37,9 @@ import com.cst438.services.RegistrationServiceMQ;
 import com.cst438.services.RegistrationServiceREST;
 
 //@RestController
-//@CrossOrigin(origins = {"http://localhost:3000","https://cst438-gradebook-fe.herokuapp.com/"})
-//@RestController
-//@CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
+//@CrossOrigin(origins = {"http://localhost:3000","https://cst438-gradebook-fe.herokuapp.com"})
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000","https://cst438-gradebook-fe.herokuapp.com"})
+@CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
 public class GradeBookController {
 	
 	@Autowired
@@ -53,6 +52,9 @@ public class GradeBookController {
 	CourseRepository courseRepository;
 	
 	@Autowired
+	EnrollmentRepository enrollmentRepository;
+	
+	@Autowired
 	RegistrationService registrationService;
 	
 	// get assignments for an instructor that need grading
@@ -60,46 +62,120 @@ public class GradeBookController {
 	public AssignmentListDTO getAssignmentsNeedGrading(@AuthenticationPrincipal OAuth2User principal) {
 		
 		String email = principal.getAttribute("email");
+		boolean instructor = false;
 		
-		List<Assignment> assignments = assignmentRepository.findNeedGradingByEmail(email);
-		
-		AssignmentListDTO result = new AssignmentListDTO();
-		for (Assignment a: assignments) {
-			result.assignments.add(new AssignmentListDTO.AssignmentDTO(a.getId(), a.getCourse().getCourse_id(), a.getName(), a.getDueDate().toString() , a.getCourse().getTitle()));
+		// determine if user is an instructor or not
+		Iterable<Course> courses = courseRepository.findAll();
+		for (Course c : courses) {
+			if (c.getInstructor().equals(email)) {
+				instructor = true;
+				continue;
+			}
 		}
-		return result;
+		
+		// if the user is an instructor, show all of the assignments for their courses
+		// that need grading
+		if (instructor) {
+			List<Assignment> assignments = assignmentRepository.findNeedGradingByEmail(email);
+			
+			AssignmentListDTO result = new AssignmentListDTO();
+			for (Assignment a: assignments) {
+				result.assignments.add(new AssignmentListDTO.AssignmentDTO(a.getId(), a.getCourse().getCourse_id(), a.getName(), a.getDueDate().toString() , a.getCourse().getTitle()));
+			}
+			
+			return result;
+		}
+		
+		// otherwise, if the user is not an instructor, show the assignments for all of the 
+		// courses they are enrolled in (if any)
+		else {
+			Iterable<Enrollment> enrollments = enrollmentRepository.findAll();
+			List<Course> coursesEnrolled = new ArrayList<>();
+			List<Assignment> assignments = new ArrayList<>();
+			
+			// determine which courses the user is enrolled in
+			for (Enrollment e : enrollments) {
+				if (e.getStudentEmail().equals(email)) {
+					coursesEnrolled.add(e.getCourse());
+				}
+			}
+			
+			// get all of the assignments for each course the user is enrolled in
+			for (Course c : coursesEnrolled) {
+				assignments.addAll(c.getAssignments());
+			}
+			
+			// add these assignments to result and return
+			AssignmentListDTO result = new AssignmentListDTO();
+			for (Assignment a : assignments) {
+				result.assignments.add(new AssignmentListDTO.AssignmentDTO(a.getId(), a.getCourse().getCourse_id(), a.getName(), a.getDueDate().toString() , a.getCourse().getTitle()));
+			}
+			
+			return result;
+		}
 	}
 	
 	@GetMapping("/gradebook/{id}")
 	public GradebookDTO getGradebook(@PathVariable("id") Integer assignmentId, @AuthenticationPrincipal OAuth2User principal) {
 		
 		String email = principal.getAttribute("email");
-		Assignment assignment = checkAssignment(assignmentId, email);
 		
-		// get the enrollment for the course
-		//  for each student, get the current grade for assignment, 
-		//   if the student does not have a current grade, create an empty grade
-		GradebookDTO gradebook = new GradebookDTO();
-		gradebook.assignmentId= assignmentId;
-		gradebook.assignmentName = assignment.getName();
-		for (Enrollment e : assignment.getCourse().getEnrollments()) {
-			GradebookDTO.Grade grade = new GradebookDTO.Grade();
-			grade.name = e.getStudentName();
-			grade.email = e.getStudentEmail();
-			// does student have a grade for this assignment
-			AssignmentGrade ag = assignmentGradeRepository.findByAssignmentIdAndStudentEmail(assignmentId,  grade.email);
-			if (ag != null) {
-				grade.grade = ag.getScore();
-				grade.assignmentGradeId = ag.getId();
-			} else {
-				grade.grade = "";
-				AssignmentGrade agNew = new AssignmentGrade(assignment, e);
-				agNew = assignmentGradeRepository.save(agNew);
-				grade.assignmentGradeId = agNew.getId();  // key value generated by database on save.
-			}
-			gradebook.grades.add(grade);
+		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+		if (assignment.equals(null)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Invalid Assignment Id");
 		}
-		return gradebook;
+		
+		// if the user is the instructor of the course that the assignment belongs to
+		// then show the assignment grades for every student enrolled in the course
+		if (assignment.getCourse().getInstructor().equals(email)) {
+			// get the enrollment for the course
+			//  for each student, get the current grade for assignment, 
+			//   if the student does not have a current grade, create an empty grade
+			GradebookDTO gradebook = new GradebookDTO();
+			gradebook.assignmentId= assignmentId;
+			gradebook.assignmentName = assignment.getName();
+			for (Enrollment e : assignment.getCourse().getEnrollments()) {
+				GradebookDTO.Grade grade = new GradebookDTO.Grade();
+				grade.name = e.getStudentName();
+				grade.email = e.getStudentEmail();
+				// does student have a grade for this assignment
+				AssignmentGrade ag = assignmentGradeRepository.findByAssignmentIdAndStudentEmail(assignmentId,  grade.email);
+				if (ag != null) {
+					grade.grade = ag.getScore();
+					grade.assignmentGradeId = ag.getId();
+				} else {
+					grade.grade = "";
+					AssignmentGrade agNew = new AssignmentGrade(assignment, e);
+					agNew = assignmentGradeRepository.save(agNew);
+					grade.assignmentGradeId = agNew.getId();  // key value generated by database on save.
+				}
+				gradebook.grades.add(grade);
+			}
+			return gradebook;
+		}
+		
+		// otherwise if the user is not an instructor, then only show the user's assignment grades
+		// for the assignments of the courses that the user is enrolled in
+		else {
+			GradebookDTO gradebook = new GradebookDTO();
+			gradebook.assignmentId= assignmentId;
+			gradebook.assignmentName = assignment.getName();
+			
+			for (Enrollment e : assignment.getCourse().getEnrollments()) {
+				GradebookDTO.Grade grade = new GradebookDTO.Grade();
+				grade.name = e.getStudentName();
+				grade.email = e.getStudentEmail();
+				// does student have a grade for this assignment
+				AssignmentGrade ag = assignmentGradeRepository.findByAssignmentIdAndStudentEmail(assignmentId,  grade.email);
+				if (ag != null && e == ag.getStudentEnrollment()) {
+					grade.grade = ag.getScore();
+					grade.assignmentGradeId = ag.getId();
+					gradebook.grades.add(grade);
+				}
+			}
+			
+			return gradebook;
+		}
 	}
 	
 	@PostMapping("/course/{course_id}/finalgrades")
@@ -238,15 +314,26 @@ public class GradeBookController {
 	@GetMapping("/assignment/{id}")
 	public AssignmentListDTO.AssignmentDTO getAssignment(@PathVariable("id") Integer assignmentId, @AuthenticationPrincipal OAuth2User principal) {
 		String email = principal.getAttribute("email");
-		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
 		
 		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
 		if (assignment == null) {
 			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Invalid assignment.");
 		}
 		
-		AssignmentListDTO.AssignmentDTO assignmentDTO = createAssignmentDTO(assignment);
-		return assignmentDTO;
+		if (assignment.getCourse().getInstructor().equals(email)) {
+			AssignmentListDTO.AssignmentDTO assignmentDTO = createAssignmentDTO(assignment);
+			return assignmentDTO;
+		}
+	
+		List<Enrollment> enrollment = assignment.getCourse().getEnrollments();
+		for (Enrollment e : enrollment) {
+			if (e.getStudentEmail().equals(email)) {
+				AssignmentListDTO.AssignmentDTO assignmentDTO = createAssignmentDTO(assignment);
+				return assignmentDTO;
+			}
+		}
+		
+		throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Not Authorized");
 	}
 	
 	
